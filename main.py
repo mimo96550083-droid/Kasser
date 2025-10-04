@@ -165,7 +165,7 @@ def reset_user_session(user_id):
         'running': False,
         'current_token': None,
         'last_quota': None,
-        'cycle_state': "آه"  # Initialize cycle state
+        'cycle_state': "آه"
     }
     RUNNING_CYCLES[user_id] = False
 
@@ -186,6 +186,70 @@ def load_user_config(user_id):
         with open(filename, 'r', encoding='utf-8') as f:
             return json.load(f)
     return None
+
+def get_basic_info():
+    config = DEFAULT_CONFIG.copy()
+    
+    print_header()
+    print_info("الرجاء إدخال المعلومات الأساسية")
+    print_separator()
+    
+    config['owner_number'] = input(f"{BRIGHT_YELLOW}┌─({CYAN}👤 رقم المالك{RESET}{BRIGHT_YELLOW})─>{WHITE} ")
+    config['owner_password'] = input(f"{BRIGHT_YELLOW}├─({CYAN}🔒 كلمة المرور{RESET}{BRIGHT_YELLOW})─>{WHITE} ")
+    
+    print(f"\n{BRIGHT_YELLOW}├──{'─'*15}[ {CYAN}أرقام الأعضاء{RESET}{BRIGHT_YELLOW} ]{'─'*15}─┤")
+    config['member1_number'] = input(f"{BRIGHT_YELLOW}│   ├─({CYAN}👥 العضو الأول{RESET}{BRIGHT_YELLOW})─>{WHITE} ")
+    config['member2_number'] = input(f"{BRIGHT_YELLOW}│   ├─({CYAN}👥 العضو الثاني{RESET}{BRIGHT_YELLOW})─>{WHITE} ")
+    config['member2_password'] = input(f"{BRIGHT_YELLOW}│   └─({CYAN}🔒 كلمة مرور العضو الثاني{RESET}{BRIGHT_YELLOW})─>{WHITE} ")
+
+    print(f"\n{BRIGHT_YELLOW}├──{'─'*15}[ {CYAN}خيارات متقدمة{RESET}{BRIGHT_YELLOW} ]{'─'*15}─┤")
+    use_proxies_input = input(f"{BRIGHT_YELLOW}│   ├─({CYAN}❓ استخدام بروكسيات{RESET}{BRIGHT_YELLOW}) [Y/N]─>{WHITE} ").upper()
+    config['use_proxies'] = (use_proxies_input == 'Y')
+    if config['use_proxies']: 
+        load_proxies()
+
+    print_separator()
+    
+    save_config_input = input(f"{BRIGHT_YELLOW}❓ هل تريد حفظ المعلومات الأساسية لاستخدامها مستقبلاً؟ [Y/N]: {RESET}").upper()
+    if save_config_input == 'Y':
+        with open('basic_config.json', 'w', encoding='utf-8') as f:
+            basic_info = {
+                'owner_number': config['owner_number'],
+                'owner_password': config['owner_password'],
+                'member1_number': config['member1_number'],
+                'member2_number': config['member2_number'],
+                'member2_password': config['member2_password'],
+                'use_proxies': config['use_proxies']
+            }
+            json.dump(basic_info, f, ensure_ascii=False, indent=4)
+            print_success("تم حفظ المعلومات الأساسية في ملف basic_config.json")
+    
+    return config
+
+def load_basic_config():
+    if os.path.exists('basic_config.json'):
+        try:
+            with open('basic_config.json', 'r', encoding='utf-8') as f:
+                basic_info = json.load(f)
+            config = DEFAULT_CONFIG.copy()
+            config.update(basic_info)
+            print_success("تم تحميل المعلومات الأساسية بنجاح.")
+            return config
+        except Exception as e:
+            print_error(f"خطأ في تحميل المعلومات الأساسية: {e}")
+            return None
+    return None
+
+def ask_config_option():
+    config = load_basic_config()
+    if config:
+        choice = input(f"{BRIGHT_YELLOW}❓ هل تريد المتابعة بالإعدادات المحفوظة؟ [Y/N]: {RESET}").upper()
+        if choice == 'Y':
+            return config
+        else:
+            return get_basic_info()
+    else:
+        return get_basic_info()
 
 # --- API Functions ---
 def get_fresh_token(phone_number, password, chat_id=None):
@@ -662,6 +726,12 @@ def run_flex_cycle(message):
                 countdown(config['delays']["2"], message.chat.id)
                 
             elif task_id == 3:
+                start_time = datetime.now()
+                print_info(f"⏳ انتظار 60 ثانية قبل الخطوة التالية... (بدأ الساعة: {start_time.strftime('%H:%M:%S')})", message.chat.id)
+                countdown(60.0, message.chat.id)
+                end_time = datetime.now()
+                print_info(f"✅ اكتمل الانتظار (انتهى الساعة: {end_time.strftime('%H:%M:%S')}, المدة: {(end_time - start_time).total_seconds():.2f} ثانية)", message.chat.id)
+                
                 if member2_token:
                     start_time = datetime.now()
                     print_info(f"بدء التزامن في دورة {cycle_state}: قبول الدعوة وتغيير الحصة إلى 40%", message.chat.id)
@@ -791,6 +861,12 @@ def main():
                 countdown(config['delays']["2"])
                 
             elif task_id == 3:
+                start_time = datetime.now()
+                print_info(f"⏳ انتظار 60 ثانية قبل الخطوة التالية... (بدأ الساعة: {start_time.strftime('%H:%M:%S')})")
+                countdown(60.0)
+                end_time = datetime.now()
+                print_info(f"✅ اكتمل الانتظار (انتهى الساعة: {end_time.strftime('%H:%M:%S')}, المدة: {(end_time - start_time).total_seconds():.2f} ثانية)")
+                
                 if member2_token:
                     print_info(f"بدء التزامن في دورة {cycle_state}: قبول الدعوة وتغيير الحصة إلى 40%")
                     
