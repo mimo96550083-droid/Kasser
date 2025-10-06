@@ -519,22 +519,16 @@ def run_flex_cycle(message):
         summary_msgs.append(f"2️⃣ دعوة العضو الثاني: {'✅' if ok else '❌'} {msg} (المدة: {(end_time - start_time).total_seconds():.2f} ثانية)")
         bot.send_message(message.chat.id, f"2️⃣ دعوة العضو الثاني: {'✅' if ok else '❌'} {msg} (انتهى الساعة: {end_time.strftime('%H:%M:%S')}, المدة: {(end_time - start_time).total_seconds():.2f} ثانية)")
 
-        # فاصل 60 ثانية
+        # فاصل 10 ثواني
         start_time = datetime.now()
-        bot.send_message(message.chat.id, f"⏳ انتظار 60 ثانية قبل الخطوة التالية... (بدأ الساعة: {start_time.strftime('%H:%M:%S')})")
-        time.sleep(60.0)
+        bot.send_message(message.chat.id, f"⏳ انتظار 10 ثوان قبل الخطوة التالية... (بدأ الساعة: {start_time.strftime('%H:%M:%S')})")
+        time.sleep(10.0)
         end_time = datetime.now()
         bot.send_message(message.chat.id, f"✅ اكتمل الانتظار (انتهى الساعة: {end_time.strftime('%H:%M:%S')}, المدة: {(end_time - start_time).total_seconds():.2f} ثانية)")
 
-        # 3- قبول الدعوة + تغيير الحصة بتناوب عشوائي (10%, 20%, 40%) متزامن
+        # 3- قبول الدعوة + تغيير الحصة إلى 40% متزامن
         start_time = datetime.now()
-        # اختيار نسبة عشوائية مختلفة عن السابقة
-        available_quotas = ["10", "20", "40"]
-        last_quota = session['last_quota']
-        if last_quota:
-            available_quotas.remove(last_quota)  # إزالة النسخة السابقة
-        quota_percentage = random.choice(available_quotas)
-        session['last_quota'] = quota_percentage  # تحديث النسخة اللي استخدمت
+        quota_percentage = "40"  # تغيير الحصة إلى 40% فقط
         bot.send_message(message.chat.id, f"🔄 جاري تنفيذ المهمتين المتزامنتين (قبول الدعوة وتغيير الحصة إلى {quota_percentage}%)... (بدأ الساعة: {start_time.strftime('%H:%M:%S')})")
         member2_token = get_fresh_token(config['member2_number'], config['member2_password'])
         if member2_token:
