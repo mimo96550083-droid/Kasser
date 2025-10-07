@@ -526,9 +526,9 @@ def run_flex_cycle(message):
         end_time = datetime.now()
         bot.send_message(message.chat.id, f"✅ اكتمل الانتظار (انتهى الساعة: {end_time.strftime('%H:%M:%S')}, المدة: {(end_time - start_time).total_seconds():.2f} ثانية)")
 
-        # 3- قبول الدعوة + تغيير الحصة إلى 40% متزامن
+        # 3- قبول الدعوة + تغيير الحصة إلى 50% أو 40% بالتناوب متزامن
         start_time = datetime.now()
-        quota_percentage = "40"  # تغيير الحصة إلى 40% فقط
+        quota_percentage = "50" if i % 2 == 0 else "40"  # 50% في الحلقات الزوجية (0, 2, 4, ...), 40% في الفردية (1, 3, 5, ...)
         bot.send_message(message.chat.id, f"🔄 جاري تنفيذ المهمتين المتزامنتين (قبول الدعوة وتغيير الحصة إلى {quota_percentage}%)... (بدأ الساعة: {start_time.strftime('%H:%M:%S')})")
         member2_token = get_fresh_token(config['member2_number'], config['member2_password'])
         if member2_token:
