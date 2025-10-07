@@ -196,7 +196,7 @@ def add_family_member(access_token, owner_number, member_number, quota_value, us
           {"id": [{"value": owner_number, "schemeName": "MSISDN"}], "type": "Owner"},
           {"id": [{"value": member_number, "schemeName": "MSISDN"}], "type": "Member"}
         ], "characteristicsValue": {
-          "characteristicsValue": [{"characteristicName": "quotaDist1", "value": "10", "type": "percentage"}]  # تم تعديل القيمة إلى 10
+          "characteristicsValue": [{"characteristicName": "quotaDist1", "value": "10", "type": "percentage"}]
         }
       }
     }
@@ -526,27 +526,30 @@ def run_flex_cycle(message):
         end_time = datetime.now()
         bot.send_message(message.chat.id, f"✅ اكتمل الانتظار (انتهى الساعة: {end_time.strftime('%H:%M:%S')}, المدة: {(end_time - start_time).total_seconds():.2f} ثانية)")
 
-        # 3- قبول الدعوة + تغيير الحصة إلى 50% أو 40% بالتناوب متزامن
+        # 3- قبول الدعوة + تغيير الحصة إلى 40% متزامن
         start_time = datetime.now()
-        quota_percentage = "50" if i % 2 == 0 else "40"  # 50% في الحلقات الزوجية (0, 2, 4, ...), 40% في الفردية (1, 3, 5, ...)
-        bot.send_message(message.chat.id, f"🔄 جاري تنفيذ المهمتين المتزامنتين (قبول الدعوة وتغيير الحصة إلى {quota_percentage}%)... (بدأ الساعة: {start_time.strftime('%H:%M:%S')})")
+        quota_percentage = "40"  # النسبة دائمًا 40% لتغيير حصة الفرد الأول
+        bot.send_message(message.chat.id, f"🔄 جاري تنفيذ المهمتين المتزامنتين (قبول الدعوة وتغيير حصة الفرد الأول إلى {quota_percentage}%)... (بدأ الساعة: {start_time.strftime('%H:%M:%S')})")
         member2_token = get_fresh_token(config['member2_number'], config['member2_password'])
         if member2_token:
-            # إنشاء الخيوط
-            threads = []
+            # إنشاء حدث للتزامن
+            sync_event = Event()
             
             # Thread لقبول الدعوة
             def run_accept():
+                sync_event.wait()  # انتظار إشارة البدء
                 ok, msg = accept_invitation(member2_token, config['owner_number'], config['member2_number'], current_ua, random.choice(SUBDOMAINS), current_proxy)
                 bot.send_message(message.chat.id, f"👥 قبول الدعوة: {'✅' if ok else '❌'} {msg} (انتهى الساعة: {datetime.now().strftime('%H:%M:%S')})")
                 return ok, msg
 
-            # Thread لتغيير الحصة
+            # Thread لتغيير الحصة إلى 40%
             def run_quota():
+                sync_event.wait()  # انتظار إشارة البدء
                 ok, msg = change_quota(current_token, config['owner_number'], config['member1_number'], quota_percentage, current_ua, random.choice(SUBDOMAINS), current_proxy)
-                bot.send_message(message.chat.id, f"💼 تغيير الحصة إلى {quota_percentage}%: {'✅' if ok else '❌'} {msg} (انتهى الساعة: {datetime.now().strftime('%H:%M:%S')})")
+                bot.send_message(message.chat.id, f"💼 تغيير حصة الفرد الأول إلى {quota_percentage}%: {'✅' if ok else '❌'} {msg} (انتهى الساعة: {datetime.now().strftime('%H:%M:%S')})")
                 return ok, msg
 
+            threads = []
             t1 = Thread(target=run_accept)
             t2 = Thread(target=run_quota)
             threads.append(t1)
@@ -556,6 +559,10 @@ def run_flex_cycle(message):
             for t in threads:
                 t.start()
 
+            # إطلاق إشارة التزامن بعد تأخير بسيط
+            time.sleep(0.1)  # تأخير 0.1 ثانية لضمان جاهزية الخيوط
+            sync_event.set()
+
             # انتظار انتهاء الخيوط
             for t in threads:
                 t.join()
@@ -563,7 +570,7 @@ def run_flex_cycle(message):
             end_time = datetime.now()
             execution_time = (end_time - start_time).total_seconds()
             bot.send_message(message.chat.id, f"✅ المهمتان المتزامنتان اكتملتا! (انتهى الساعة: {end_time.strftime('%H:%M:%S')}, المدة: {execution_time:.2f} ثانية)")
-            summary_msgs.append(f"3️⃣ قبول الدعوة وتغيير الحصة إلى {quota_percentage}%: ✅ (المدة: {execution_time:.2f} ثانية)")
+            summary_msgs.append(f"3️⃣ قبول الدعوة وتغيير حصة الفرد الأول إلى {quota_percentage}%: ✅ (المدة: {execution_time:.2f} ثانية)")
         else:
             end_time = datetime.now()
             bot.send_message(message.chat.id, f"❌ فشل الحصول على توكن العضو الثاني - تخطى المهمة. (انتهى الساعة: {end_time.strftime('%H:%M:%S')})")
